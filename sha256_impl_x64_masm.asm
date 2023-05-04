@@ -43,7 +43,7 @@
 
                 .const
 SCHED           macro       i
-                scale       textequ %i AND 0fh
+                scale       textequ %i AND 0fh              ; i mod 16
                 exitm       <[rsp + scale * 4]>
                 endm
 
@@ -117,7 +117,7 @@ else
                 xor         eax, edi                        ; s0 = eax
                 add         ebx, eax                        ; ebx = w[i-16] + s0
                 add         ebx, dword ptr SCHED(i-7)       ; ebx = w[i-16] + s0 + w[i-7]
-                mov         eax, dword ptr SCHED(i- 2)
+                mov         eax, dword ptr SCHED(i-2)
                 mov         edi, eax
                 mov         esi, eax
                 ror         edi, 19
