@@ -22,22 +22,22 @@
 ;
 ; Storage usage:
 ;   Bytes  Location  Volatile  Description
-;       4  eax       yes       Temporary for calculation per round
-;       4  ebx       no        Temporary for calculation per round
-;       4  edi       no        Temporary for calculation per round
-;       4  esi       no        Temporary for calculation per round
-;       8  rcx       yes       Base address of block array argument (read-only)
-;       8  rdx       yes       Base address of state array argument (read-only)
+;       4  eax       yes       Temporary w-bit word used in the hash computation
+;       4  ebx       no        Temporary w-bit word used in the hash computation
+;       4  edi       no        Temporary w-bit word used in the hash computation
+;       4  esi       no        Temporary w-bit word used in the hash computation
+;       8  rcx       yes       Base address of message block array argument (read-only)
+;       8  rdx       yes       Base address of hash value array argument (read-only)
 ;       8  rsp       no        x86-64 stack pointer
-;       4  r8d       yes       SHA-256 state variable A
-;       4  r9d       yes       SHA-256 state variable B
-;       4  r10d      yes       SHA-256 state variable C
-;       4  r11d      yes       SHA-256 state variable D
-;       4  r12d      no        SHA-256 state variable E
-;       4  r13d      no        SHA-256 state variable F
-;       4  r14d      no        SHA-256 state variable G
-;       4  r15d      no        SHA-256 state variable H
-;      64  [rsp+0]   no        Circular buffer of most recent 16 key schedule items, 4 bytes each
+;       4  r8d       yes       SHA-256 working variable A
+;       4  r9d       yes       SHA-256 working variable B
+;       4  r10d      yes       SHA-256 working variable C
+;       4  r11d      yes       SHA-256 working variable D
+;       4  r12d      no        SHA-256 working variable E
+;       4  r13d      no        SHA-256 working variable F
+;       4  r14d      no        SHA-256 working variable G
+;       4  r15d      no        SHA-256 working variable H
+;      64  [rsp+0]   no        Circular buffer of most recent 16 message schedule items, 4 bytes each
 
                 option  casemap:none
 
@@ -64,12 +64,12 @@ ROUNDTAIL       macro       a, b, c, d, e, f, g, h, k       ; ebx = w[i]
                 ; ch = (e & f) ^ (~e & g) = (g ^ (e & (f ^ g)))
                 ; & and ^ form the Z/2Z ring (& is *, ^ is +)
                 ; ~e is (1 + e)
-                ; ef+(1+e)g = ef+g+eg = g+ef+eg = g+e*(f+g)
+                ; ef + (1 + e)g = ef + g + eg = g + ef + eg = g + e(f + g)
                 mov         edi, g
                 xor         edi, f
                 and         edi, e
                 xor         edi, g                          ; edi = ch
-                lea         eax, [eax + edi + k]            ; eax = S1 + ch + k
+                lea         eax, [eax + edi + k]            ; eax = S1 + ch + k[i]
                 add         h, eax                          ; h -> h + S1 + ch + k[i]
                 add         h, ebx                          ; h -> h + S1 + ch + k[i] + w[i] = temp1
                 ; Part 1
@@ -135,7 +135,7 @@ endif
 
                 .code
                 ; void sha256_compress(const uint8_t block[64], uint32_t state[8])
-                public  sha256_compress
+                public      sha256_compress
 sha256_compress proc
                 ; Save nonvolatile registers, allocate scratch space
                 push        rbx
@@ -147,17 +147,17 @@ sha256_compress proc
                 push        r15
                 sub         rsp, 64
 
-                ; Load state
-                mov         r8d,  dword ptr [rdx]           ; a
-                mov         r9d,  dword ptr [rdx+4]         ; b
-                mov         r10d, dword ptr [rdx+8]         ; c
+                ; Initialize working variables with previous hash value
+                mov          r8d, dword ptr [rdx]           ; a
+                mov          r9d, dword ptr [rdx+ 4]        ; b
+                mov         r10d, dword ptr [rdx+ 8]        ; c
                 mov         r11d, dword ptr [rdx+12]        ; d
                 mov         r12d, dword ptr [rdx+16]        ; e
                 mov         r13d, dword ptr [rdx+20]        ; f
                 mov         r14d, dword ptr [rdx+24]        ; g
                 mov         r15d, dword ptr [rdx+28]        ; h
 
-                ; Do 64 rounds of hashing
+                ; 64 rounds of hashing
                 ROUND        0, r8d , r9d , r10d, r11d, r12d, r13d, r14d, r15d,  428A2F98h
                 ROUND        1, r15d, r8d , r9d , r10d, r11d, r12d, r13d, r14d,  71374491h
                 ROUND        2, r14d, r15d, r8d , r9d , r10d, r11d, r12d, r13d, -4A3F0431h
@@ -223,10 +223,10 @@ sha256_compress proc
                 ROUND       62, r10d, r11d, r12d, r13d, r14d, r15d, r8d , r9d , -41065C09h
                 ROUND       63, r9d , r10d, r11d, r12d, r13d, r14d, r15d, r8d , -398E870Eh
 
-                ; Add to state
-                add         [rdx],    r8d
-                add         [rdx+4],  r9d
-                add         [rdx+8],  r10d
+                ; Compute intermediate hash value
+                add         [rdx],     r8d
+                add         [rdx+ 4],  r9d
+                add         [rdx+ 8], r10d
                 add         [rdx+12], r11d
                 add         [rdx+16], r12d
                 add         [rdx+20], r13d

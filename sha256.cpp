@@ -22,7 +22,7 @@ void SHA256::reset()
   m_numBytes   = 0;
   m_bufferSize = 0;
 
-  // according to RFC 1321
+  // according to RFC 4634
   // "These words were obtained by taking the first thirty-two bits of the
   //  fractional parts of the square roots of the first eight prime numbers"
   m_hash[0] = 0x6a09e667;
