@@ -71,7 +71,7 @@ else
 endif
 
                 lea         a, [eax + a + t]
-                add         a, [rcx + 4 * k]
+                add         a, [rcx + k*4]
                 rol         a, s
                 add         a, b
                 endm
@@ -84,10 +84,10 @@ md5_compress    proc
                 sub         rsp, 64
 
                 ; Initialize working variables with previous hash value
-                mov          r8d, dword ptr [rdx]           ; a
-                mov          r9d, dword ptr [rdx+ 4]        ; b
-                mov         r10d, dword ptr [rdx+ 8]        ; c
-                mov         r11d, dword ptr [rdx+12]        ; d
+                mov          r8d, [rdx]                     ; a
+                mov          r9d, [rdx +  4]                ; b
+                mov         r10d, [rdx +  8]                ; c
+                mov         r11d, [rdx + 12]                ; d
 
                 ; 64 rounds of hashing
                 ROUND        0, r8d, r9d, r10d, r11d,  0,  7, -28955B88h
@@ -156,10 +156,10 @@ md5_compress    proc
                 ROUND       63, r9d, r10d, r11d, r8d,  9, 21, -14792C6Fh
 
                 ; Compute intermediate hash value
-                add         [rdx],     r8d
-                add         [rdx+ 4],  r9d
-                add         [rdx+ 8], r10d
-                add         [rdx+12], r11d
+                add         [rdx]     ,  r8d
+                add         [rdx +  4],  r9d
+                add         [rdx +  8], r10d
+                add         [rdx + 12], r11d
 
                 ; Destroy scratch space
                 add         rsp, 64
