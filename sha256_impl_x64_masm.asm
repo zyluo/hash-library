@@ -43,8 +43,8 @@
 
                 .const
 SCHED           macro       i
-                scale       textequ %i AND 0fh              ; i mod 16
-                exitm       <[rsp + scale * 4]>
+                index       textequ %i AND 0fh              ; i mod 16
+                exitm       <[rsp + index*4]>
                 endm
 
 ROUNDTAIL       macro       a, b, c, d, e, f, g, h, k       ; ebx = w[i]
@@ -99,15 +99,15 @@ ROUND           macro       i, a, b, c, d, e, f, g, h, k
 
 if i LT 16
 
-                mov         ebx, dword ptr [rcx + i * 4]    ; ebx = w[i]
+                mov         ebx, [rcx + i*4]                ; ebx = w[i]
                 bswap       ebx
                 mov         SCHED(i), ebx
 
 else
 
                 ; (obj) w[i] -> w[i-16] + s0 + w[i-7] + s1
-                mov         ebx, dword ptr SCHED(i-16)      ; ebx = w[i-16]
-                mov         eax, dword ptr SCHED(i-15)
+                mov         ebx, SCHED(i - 16)              ; ebx = w[i-16]
+                mov         eax, SCHED(i - 15)
                 mov         edi, eax
                 mov         esi, eax
                 ror         edi, 18
@@ -116,8 +116,8 @@ else
                 xor         edi, esi
                 xor         eax, edi                        ; s0 = eax
                 add         ebx, eax                        ; ebx = w[i-16] + s0
-                add         ebx, dword ptr SCHED(i-7)       ; ebx = w[i-16] + s0 + w[i-7]
-                mov         eax, dword ptr SCHED(i-2)
+                add         ebx, SCHED(i -  7)              ; ebx = w[i-16] + s0 + w[i-7]
+                mov         eax, SCHED(i -  2)
                 mov         edi, eax
                 mov         esi, eax
                 ror         edi, 19
@@ -148,14 +148,14 @@ sha256_compress proc
                 sub         rsp, 64
 
                 ; Initialize working variables with previous hash value
-                mov          r8d, dword ptr [rdx]           ; a
-                mov          r9d, dword ptr [rdx+ 4]        ; b
-                mov         r10d, dword ptr [rdx+ 8]        ; c
-                mov         r11d, dword ptr [rdx+12]        ; d
-                mov         r12d, dword ptr [rdx+16]        ; e
-                mov         r13d, dword ptr [rdx+20]        ; f
-                mov         r14d, dword ptr [rdx+24]        ; g
-                mov         r15d, dword ptr [rdx+28]        ; h
+                mov          r8d, [rdx]                     ; a
+                mov          r9d, [rdx +  4]                ; b
+                mov         r10d, [rdx +  8]                ; c
+                mov         r11d, [rdx + 12]                ; d
+                mov         r12d, [rdx + 16]                ; e
+                mov         r13d, [rdx + 20]                ; f
+                mov         r14d, [rdx + 24]                ; g
+                mov         r15d, [rdx + 28]                ; h
 
                 ; 64 rounds of hashing
                 ROUND        0, r8d , r9d , r10d, r11d, r12d, r13d, r14d, r15d,  428A2F98h
@@ -224,14 +224,14 @@ sha256_compress proc
                 ROUND       63, r9d , r10d, r11d, r12d, r13d, r14d, r15d, r8d , -398E870Eh
 
                 ; Compute intermediate hash value
-                add         [rdx],     r8d
-                add         [rdx+ 4],  r9d
-                add         [rdx+ 8], r10d
-                add         [rdx+12], r11d
-                add         [rdx+16], r12d
-                add         [rdx+20], r13d
-                add         [rdx+24], r14d
-                add         [rdx+28], r15d
+                add         [rdx]     ,  r8d
+                add         [rdx +  4],  r9d
+                add         [rdx +  8], r10d
+                add         [rdx + 12], r11d
+                add         [rdx + 16], r12d
+                add         [rdx + 20], r13d
+                add         [rdx + 24], r14d
+                add         [rdx + 28], r15d
 
                 ; Restore nonvolatile registers
                 add         rsp, 64

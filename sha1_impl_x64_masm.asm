@@ -38,8 +38,8 @@
 
                 .const
 SCHED           macro       i
-                scale       textequ %i AND 0fh              ; i mod 16
-                exitm       <[rsp + scale * 4]>
+                index       textequ %i AND 0fh              ; i mod 16
+                exitm       <[rsp + index*4]>
                 endm
 
 ROUNDTAIL       macro       a, b, e, k                      ; eax = f[i], e -> e + w[i]
@@ -56,15 +56,15 @@ ROUND           macro       i, a, b, c, d, e
 
 if i LT 16
 
-                mov         eax, dword ptr [rcx + i * 4]
+                mov         eax, [rcx + i*4]
                 bswap       eax
 
 else
 
-                mov         eax, SCHED(i- 3)
-                xor         eax, SCHED(i- 8)
-                xor         eax, SCHED(i-14)
-                xor         eax, SCHED(i-16)
+                mov         eax, SCHED(i -  3)
+                xor         eax, SCHED(i -  8)
+                xor         eax, SCHED(i - 14)
+                xor         eax, SCHED(i - 16)
                 rol         eax, 1
 
 endif
@@ -127,11 +127,11 @@ sha1_compress   proc
                 sub         rsp, 64
 
                 ; Initialize working variables with previous hash value
-                mov          r8d, dword ptr [rdx]           ; a
-                mov          r9d, dword ptr [rdx+ 4]        ; b
-                mov         r10d, dword ptr [rdx+ 8]        ; c
-                mov         r11d, dword ptr [rdx+12]        ; d
-                mov         r12d, dword ptr [rdx+16]        ; e
+                mov          r8d, [rdx]                     ; a
+                mov          r9d, [rdx +  4]                ; b
+                mov         r10d, [rdx +  8]                ; c
+                mov         r11d, [rdx + 12]                ; d
+                mov         r12d, [rdx + 16]                ; e
 
                 ; 80 rounds of hashing
                 ROUND        0, r8d, r9d, r10d, r11d, r12d
@@ -216,11 +216,11 @@ sha1_compress   proc
                 ROUND       79, r9d, r10d, r11d, r12d, r8d
 
                 ; Compute intermediate hash value
-                add         [rdx],     r8d
-                add         [rdx+ 4],  r9d
-                add         [rdx+ 8], r10d
-                add         [rdx+12], r11d
-                add         [rdx+16], r12d
+                add         [rdx]     ,  r8d
+                add         [rdx +  4],  r9d
+                add         [rdx +  8], r10d
+                add         [rdx + 12], r11d
+                add         [rdx + 16], r12d
 
                 ; Restore nonvolatile registers
                 add         rsp, 64
